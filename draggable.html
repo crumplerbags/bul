@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PNG Cursor + Optional Background</title>
+<style>
+  :root{
+    /* Set to an image URL or 'none' */
+    --bg-image: url("bg.jpg"); /* e.g., 'none' */
+    --cursor-image: url("cursor.png");
+    --cursor-w: 228px;
+    --cursor-h: 228px;
+    --hotspot-x: 16px;
+    --hotspot-y: 16px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; cursor: none; }
+
+  /* Hide native cursor globally; we'll draw our own */
+  body{
+    cursor: none;
+    background:
+      var(--bg-image),
+      linear-gradient(180deg, #fafafa, #efefef);
+    background-repeat: no-repeat;
+    background-size: contain;
+    Width: 40%;
+    background-position: center;
+  }
+
+
+
+  /* Full viewport area; width auto by default */
+  .app{
+    min-height: 100vh;
+    min-height: 100svh;
+    width: auto;
+  }
+
+  /* Custom PNG cursor overlay */
+  .custom-cursor{
+    position: fixed;
+    left: 0; top: 0;
+    width: var(--cursor-w);
+    height: var(--cursor-h);
+    background-image: var(--cursor-image);
+    background-size: contain;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    z-index: 2147483647;
+    will-change: transform;
+    transform: translate(-9999px, -9999px);
+  }
+
+  /* Optional: show native cursor over editable elements if ever present */
+  .show-native-cursor, .show-native-cursor * { cursor: auto !important; }
+  .custom-cursor.hidden { display:none; }
+</style>
+</head>
+<body>
+  <main class="app"></main>
+  <div class="custom-cursor" id="customCursor" aria-hidden="true"></div>
+
+<script>
+(() => {
+  const cursorEl = document.getElementById('customCursor');
+
+  const cssPx = n => parseFloat(getComputedStyle(document.documentElement).getPropertyValue(n)) || 0;
+  let hotspotX = cssPx('--hotspot-x');
+  let hotspotY = cssPx('--hotspot-y');
+
+  let targetX = -9999, targetY = -9999;
+  let currentX = targetX, currentY = targetY;
+  const lerp = (a,b,t)=>a+(b-a)*t;
+
+  function loop(){
+    currentX = lerp(currentX, targetX, 0.35);
+    currentY = lerp(currentY, targetY, 0.35);
+    cursorEl.style.transform = `translate(${currentX - hotspotX}px, ${currentY - hotspotY}px)`;
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  window.addEventListener('mousemove', e => {
+    targetX = e.clientX;
+    targetY = e.clientY;
+  });
+
+  // Show native cursor over typical editable controls if they ever exist
+  const shouldShowNative = el =>
+    el.closest('input, textarea, [contenteditable=""], [contenteditable="true"], select');
+
+  document.addEventListener('pointerover', e => {
+    if (shouldShowNative(e.target)) {
+      document.body.classList.add('show-native-cursor');
+      cursorEl.classList.add('hidden');
+    } else {
+      document.body.classList.remove('show-native-cursor');
+      cursorEl.classList.remove('hidden');
+    }
+  });
+
+  // Fallback to native cursor if PNG fails to load
+  const test = new Image();
+  const bg = getComputedStyle(cursorEl).backgroundImage;
+  const m = bg && bg.match(/url\((['"]?)(.*?)\1\)/);
+  if (m && m[2]) {
+    test.onerror = () => {
+      document.body.classList.add('show-native-cursor');
+      cursorEl.classList.add('hidden');
+      console.warn('Cursor PNG failed to load; reverting to native cursor.');
+    };
+    test.src = m[2];
+  }
+
+  // Hide overlay on coarse pointers (touch)
+  if (matchMedia('(pointer: coarse)').matches) cursorEl.classList.add('hidden');
+})();
+</script>
+</body>
+</html>
