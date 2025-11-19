@@ -83,9 +83,33 @@
   }
   requestAnimationFrame(loop);
 
+  // 🔹 helper to hide cursor off-screen
+  function hideCustomCursor() {
+    targetX = -9999;
+    targetY = -9999;
+    // optional: snap it instantly instead of lerping off
+    currentX = targetX;
+    currentY = targetY;
+    cursorEl.style.transform = 'translate(-9999px, -9999px)';
+  }
+
   window.addEventListener('mousemove', e => {
     targetX = e.clientX;
     targetY = e.clientY;
+  });
+
+  // 🔹 when mouse leaves the window, hide the custom cursor
+  window.addEventListener('mouseout', e => {
+    // relatedTarget === null means we've left the window, not just a child element
+    if (!e.relatedTarget && !e.toElement) {
+      hideCustomCursor();
+    }
+  });
+
+  // Optional extra safety: when tab loses focus or page hidden
+  window.addEventListener('blur', hideCustomCursor);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) hideCustomCursor();
   });
 
   // Show native cursor over typical editable controls if they ever exist
